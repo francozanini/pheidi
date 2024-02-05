@@ -1,10 +1,11 @@
 import { StyleSheet } from "react-native";
 
-import { Text, View } from "@/components/Themed";
+import { View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
-import { Card, CardTitle } from "../../components/Card";
+import { CardTitle } from "../../components/Card";
+import { Card, Text } from "@gluestack-ui/themed";
 
-export default function TabOneScreen() {
+export default function StatisticsScreen() {
   return (
     <View style={styles.container}>
       <StatisticsCard
@@ -32,7 +33,6 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     top: 20,
-    flex: 1,
     alignItems: "center",
     gap: 20,
     backgroundColor: Colors.light.backgroundOffset,
@@ -55,11 +55,13 @@ function StatisticsCard(props: {
   footer: string;
 }) {
   return (
-    <Card style={{ minWidth: 350, maxHeight: 150 }}>
+    <Card size="md" maxHeight={250} width={350} gap={20}>
       <CardTitle icon={props.icon}>{props.title}</CardTitle>
       <View>
-        <Text style={{ fontSize: 16, fontWeight: "800" }}>{props.content}</Text>
-        <Text>{props.footer}</Text>
+        <Text fontSize={16} fontWeight="800">
+          {props.content}
+        </Text>
+        <Text fontSize={12}>{props.footer}</Text>
       </View>
     </Card>
   );
