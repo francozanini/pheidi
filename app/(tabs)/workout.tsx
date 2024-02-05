@@ -1,7 +1,6 @@
 import { Button, Pressable, StyleSheet } from "react-native";
 
 import { View } from "@/components/Themed";
-import { CardTitle } from "@/components/Card";
 import Colors from "@/constants/Colors";
 import {
   Box,
@@ -15,6 +14,7 @@ import {
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import * as TaskManager from "expo-task-manager";
+import haversine from "haversine";
 
 const LOCATION_TRACKING_TASK = "location-tracking";
 
@@ -25,6 +25,7 @@ export default function WorkoutScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const distanceTravelled = useDistanceTravelled();
 
   useEffect(() => {
     if (!isRunning) return;
@@ -58,7 +59,7 @@ export default function WorkoutScreen() {
           await Location.requestBackgroundPermissionsAsync();
         if (backgroundStatus === "granted") {
           await Location.startLocationUpdatesAsync(LOCATION_TRACKING_TASK, {
-            accuracy: Location.Accuracy.High,
+            accuracy: Location.Accuracy.BestForNavigation,
             timeInterval: 1000,
             distanceInterval: 1,
           });
@@ -85,41 +86,63 @@ export default function WorkoutScreen() {
 
   return (
     <VStack space={"md"} h={"$full"} gap={20} top={20}>
-      <Center height={120}>
+      <Center height={100}>
         <Heading size="3xl">{formatTime(elapsedTime)}</Heading>
         <Text style={styles.subtitle}>Time</Text>
       </Center>
       <Divider />
-      <Center height={300}>
+      <Center height={200}>
         <Heading size="5xl">{metersToKM(location.coords.speed!)} km/h</Heading>
         <Text style={styles.subtitle}>Speed</Text>
       </Center>
       <Divider />
-      <Center height={120}>
-        <Heading size="3xl">3.2 km</Heading>
+      <Center height={100}>
+        <Heading size="3xl">{distanceTravelled?.toFixed(2)} km</Heading>
         <Text style={styles.subtitle}>Distance</Text>
       </Center>
-      <Center>
+      <Center justifyContent="flex-end">
         <Button title="Start" onPress={() => setIsRunning(!isRunning)} />
       </Center>
     </VStack>
   );
 }
 
-TaskManager.defineTask<{ locations: Location[] }>(
-  LOCATION_TRACKING_TASK,
-  ({ data, error }) => {
-    if (error) {
-      console.error(error);
-      return;
+function useDistanceTravelled() {
+  const [currentDistance, setCurrentDistance] = useState(0);
+  const [allLocations, setLocations] = useState<Location.LocationObject[]>([]);
+
+  TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
+    LOCATION_TRACKING_TASK,
+    ({ data, error }) => {
+      console.log(data?.locations.length, "locations");
+
+      if (error) {
+        console.error(error);
+        return currentDistance;
+      }
+      if (data) {
+        const { locations } = data;
+        allLocations.push(...locations);
+        setLocations([...allLocations]);
+
+        setCurrentDistance(
+          (curr) => curr + calculateDistanceTravelled(allLocations)
+        );
+      }
     }
-    if (data) {
-      const { locations } = data;
-      console.log("Received new locations", locations);
-    }
-    console.log("tick");
+  );
+  return currentDistance;
+}
+
+function calculateDistanceTravelled(locations: Location.LocationObject[]) {
+  let distance = 0;
+  for (let i = 0; i < locations.length - 1; i++) {
+    const start = locations[i];
+    const end = locations[i + 1];
+    distance += haversine(start.coords, end.coords);
   }
-);
+  return distance;
+}
 
 function formatTime(timeInSeconds: number) {
   const hours = Math.floor(timeInSeconds / 3600);
@@ -133,7 +156,7 @@ function formatTime(timeInSeconds: number) {
 }
 
 function metersToKM(meters: number) {
-  return meters / 1000;
+  return (meters / 1000).toFixed(2);
 }
 
 const styles = StyleSheet.create({
