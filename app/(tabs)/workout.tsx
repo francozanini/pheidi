@@ -13,12 +13,16 @@ import {
   Icon,
   ChevronRightIcon,
   PlayIcon,
+  Spinner,
+  Alert,
+  AlertText,
+  AlertIcon,
 } from "@gluestack-ui/themed";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import * as TaskManager from "expo-task-manager";
 import haversine from "haversine";
-import { PlayCircleIcon, StopCircleIcon } from "lucide-react-native";
+import { InfoIcon, PlayCircleIcon, StopCircleIcon } from "lucide-react-native";
 
 const LOCATION_TRACKING_TASK = "location-tracking";
 
@@ -89,17 +93,20 @@ export default function WorkoutScreen() {
 
   if (errorMsg) {
     return (
-      <View>
-        <Text>{errorMsg}</Text>
-      </View>
+      <Center justifyContent="center">
+        <Alert mx="$2.5" action="error" variant="solid">
+          <AlertIcon as={InfoIcon} mr="$3" />
+          <AlertText>Can not track location</AlertText>
+        </Alert>
+      </Center>
     );
   }
 
   if (!location) {
     return (
-      <Heading size="3xl" style={{ textAlign: "center" }}>
-        Loading...
-      </Heading>
+      <Center justifyContent="center" alignItems="center">
+        <Spinner />
+      </Center>
     );
   }
 
