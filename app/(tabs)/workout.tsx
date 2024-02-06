@@ -10,32 +10,23 @@ import {
   Heading,
   VStack,
   HStack,
+  Icon,
+  ChevronRightIcon,
+  PlayIcon,
 } from "@gluestack-ui/themed";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import * as TaskManager from "expo-task-manager";
 import haversine from "haversine";
+import { PlayCircleIcon, StopCircleIcon } from "lucide-react-native";
 
 const LOCATION_TRACKING_TASK = "location-tracking";
 
-export default function WorkoutScreen() {
+function useLocation() {
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const distanceTravelled = useDistanceTravelled();
-
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      setElapsedTime((prevElapsedTime) => prevElapsedTime + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isRunning]);
 
   useEffect(() => {
     (async () => {
@@ -49,6 +40,34 @@ export default function WorkoutScreen() {
       setLocation(location);
     })();
   }, []);
+
+  return { location, errorMsg };
+}
+
+function useRunningTracker() {
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const distanceTravelled = useDistanceTravelled(isRunning);
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const interval = setInterval(() => {
+      setElapsedTime((prevElapsedTime) => prevElapsedTime + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning, setElapsedTime]);
+
+  const toggleRunning = () => setIsRunning(!isRunning);
+
+  return { isRunning, toggleRunning, elapsedTime, distanceTravelled };
+}
+
+export default function WorkoutScreen() {
+  const { location, errorMsg } = useLocation();
+  const { isRunning, toggleRunning, elapsedTime, distanceTravelled } =
+    useRunningTracker();
 
   useEffect(() => {
     (async () => {
@@ -96,18 +115,30 @@ export default function WorkoutScreen() {
         <Text style={styles.subtitle}>Speed</Text>
       </Center>
       <Divider />
-      <Center height={100}>
-        <Heading size="3xl">{distanceTravelled?.toFixed(2)} km</Heading>
-        <Text style={styles.subtitle}>Distance</Text>
-      </Center>
+      <HStack height={100} justifyContent="space-around">
+        <Box>
+          <Heading size="2xl">{distanceTravelled?.toFixed(2)} km</Heading>
+          <Text style={styles.subtitle}>Distance</Text>
+        </Box>
+        <Box>
+          <Heading size="2xl">WIP</Heading>
+          <Text style={styles.subtitle}>Steps</Text>
+        </Box>
+      </HStack>
       <Center justifyContent="flex-end">
-        <Button title="Start" onPress={() => setIsRunning(!isRunning)} />
+        <Pressable onPress={toggleRunning}>
+          {isRunning ? (
+            <StopCircleIcon size={100} color={"black"} />
+          ) : (
+            <PlayCircleIcon size={100} color={"black"} />
+          )}
+        </Pressable>
       </Center>
     </VStack>
   );
 }
 
-function useDistanceTravelled() {
+function useDistanceTravelled(isRunning: boolean) {
   const [currentDistance, setCurrentDistance] = useState(0);
   const [allLocations, setLocations] = useState<Location.LocationObject[]>([]);
 
@@ -121,6 +152,8 @@ function useDistanceTravelled() {
         return currentDistance;
       }
       if (data) {
+        if (!isRunning) return currentDistance;
+
         const { locations } = data;
         allLocations.push(...locations);
         setLocations([...allLocations]);
