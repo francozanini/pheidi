@@ -6,6 +6,9 @@ import { Pressable } from "react-native";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
+import { Button, ButtonIcon, ButtonText } from "@gluestack-ui/themed";
+import { ActivityIcon, BarChart3Icon } from "lucide-react-native";
+import { Text } from "../../components/Themed";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -16,35 +19,18 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}
-    >
+    <Tabs screenOptions={{}}>
       <Tabs.Screen
-        name="index"
+        name="statistics"
         options={{
           title: "Statistics",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          tabBarIcon: ({ color }) => <BarChart3Icon color={color} />,
+          tabBarLabel: "Statistics",
           headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? "light"].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+            <Button action="primary" size="sm" variant="link" mr={"$4"}>
+              <ButtonText>New workout</ButtonText>
+            </Button>
           ),
         }}
       />
@@ -52,7 +38,7 @@ export default function TabLayout() {
         name="workout"
         options={{
           title: "Workout",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          tabBarIcon: ({ color }) => <ActivityIcon color={color} />,
         }}
       />
     </Tabs>
