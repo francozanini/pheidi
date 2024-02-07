@@ -1,4 +1,4 @@
-import { Button, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
@@ -10,19 +10,40 @@ import {
   Heading,
   VStack,
   HStack,
-  Icon,
-  ChevronRightIcon,
-  PlayIcon,
   Spinner,
   Alert,
   AlertText,
   AlertIcon,
+  Button,
+  ButtonText,
 } from "@gluestack-ui/themed";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import * as TaskManager from "expo-task-manager";
 import haversine from "haversine";
 import { InfoIcon, PlayCircleIcon, StopCircleIcon } from "lucide-react-native";
+
+type Workout = {
+  id: string;
+  distance: number;
+  time: number;
+  speed: number;
+  date: Date;
+};
+
+class WorkoutStorage {
+  #workouts: Workout[] = [];
+
+  addWorkout(workout: Workout) {
+    this.#workouts.push(workout);
+  }
+
+  workouts() {
+    return this.#workouts;
+  }
+}
+
+const workoutStorage = new WorkoutStorage();
 
 const LOCATION_TRACKING_TASK = "location-tracking";
 
@@ -68,6 +89,40 @@ function useRunningTracker() {
   return { isRunning, toggleRunning, elapsedTime, distanceTravelled };
 }
 
+function WorkoutButton(props: {
+  isRunning: boolean;
+  alreadyStarted: boolean;
+  onStarOrResume: () => void;
+  onPersist: () => void;
+}) {
+  if (props.isRunning) {
+    return (
+      <Pressable onPress={props.onStarOrResume}>
+        <StopCircleIcon size={100} color={"black"} />
+      </Pressable>
+    );
+  }
+
+  if (props.alreadyStarted) {
+    return (
+      <HStack>
+        <Button variant="outline">
+          <ButtonText>Resume</ButtonText>
+        </Button>
+        <Button variant="solid" onPress={() => props.onPersist()}>
+          <ButtonText>Save</ButtonText>
+        </Button>
+      </HStack>
+    );
+  }
+
+  return (
+    <Pressable onPress={props.onStarOrResume}>
+      <PlayCircleIcon size={100} color={"black"} />
+    </Pressable>
+  );
+}
+
 export default function WorkoutScreen() {
   const { location, errorMsg } = useLocation();
   const { isRunning, toggleRunning, elapsedTime, distanceTravelled } =
@@ -90,6 +145,16 @@ export default function WorkoutScreen() {
       }
     })();
   }, []);
+
+  const handleSaveWorkout = () => {
+    workoutStorage.addWorkout({
+      date: new Date(),
+      distance: distanceTravelled!,
+      id: "1",
+      speed: 0,
+      time: elapsedTime,
+    });
+  };
 
   if (errorMsg) {
     return (
@@ -133,13 +198,12 @@ export default function WorkoutScreen() {
         </Box>
       </HStack>
       <Center justifyContent="flex-end">
-        <Pressable onPress={toggleRunning}>
-          {isRunning ? (
-            <StopCircleIcon size={100} color={"black"} />
-          ) : (
-            <PlayCircleIcon size={100} color={"black"} />
-          )}
-        </Pressable>
+        <WorkoutButton
+          isRunning={isRunning}
+          alreadyStarted={elapsedTime > 0}
+          onStarOrResume={toggleRunning}
+          onPersist={handleSaveWorkout}
+        />
       </Center>
     </VStack>
   );
@@ -152,8 +216,6 @@ function useDistanceTravelled(isRunning: boolean) {
   TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
     LOCATION_TRACKING_TASK,
     ({ data, error }) => {
-      console.log(data?.locations.length, "locations");
-
       if (error) {
         console.error(error);
         return currentDistance;
